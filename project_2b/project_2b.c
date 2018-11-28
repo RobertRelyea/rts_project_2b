@@ -12,6 +12,24 @@
 #include <sys/mman.h>     /* for mmap_device_io() */
 #include <termios.h>
 
+// PWM Thread
+pthread_t pwm_thread;
+
+// PWM Thread arguments
+struct pwm_args_s
+{
+	int channel_id;
+};
+
+struct pwm_args_s pwm_args;
+
+//Define Global Variable
+
+int duty_cycle = 50;
+
+//Shared mutexes
+pthread_mutex_t duty_cycle_locker;
+
 #define BASE_ADDRESS (0x280)
 
 static uintptr_t d_i_o_port_a_handle ;	// digital I/O port handle
@@ -73,9 +91,15 @@ void start_timer( time_t timer_id, int timeOutSec, int timeOutNsec, int periodSe
 // Loop forever getting a pulse based on what we set for the timer.
 // This demonstrates a crude form of PWM output.
 // Takes duty cycle in the form of an integer ranging between 0 and 100
-void timer_demo(int channel_id, int duty_cycle)
+void *timer_demo(void *arg)
 {
+	struct pwm_args_s *my_args;
+	my_args = (struct pwm_args_s *) arg;
+
+	int channel_id = my_args->channel_id;
+
 	struct _pulse pulse ;
+
 	int change_count = duty_cycle * 2;
 	static unsigned int counter = 0 ;
 
@@ -102,10 +126,15 @@ void timer_demo(int channel_id, int duty_cycle)
 
 
 int main(int argc, char *argv[])
+
 {
-	int channel_id = 0 ;
+	// Initialize mutexes
+	pthread_mutex_init(&duty_cycle_locker,NULL);
 	timer_t timer_id = (timer_t)0 ;
 	int privity_err ;
+	pthread_mutex_lock(&duty_cycle_locker);
+	duty_cycle = 40;
+	pthread_mutex_unlock(&duty_cycle_locker);
 
 	/* Give this thread root permissions to access the hardware */
 	privity_err = ThreadCtl( _NTO_TCTL_IO, NULL );
@@ -118,7 +147,9 @@ int main(int argc, char *argv[])
 	setup_dio() ;
 
 	// create the pulse timer
-	timer_id = create_pulse_timer( &channel_id ) ;
+	printf("Setting channel id\n");
+	timer_id = create_pulse_timer( &pwm_args.channel_id ) ;
+	printf("Done setting channel id\n");
 
 	unsigned int time_value = 100000;
 //	printf( "\nSuggested value is 100000 to pulse every 100 microseconds\n" ) ;
@@ -126,7 +157,11 @@ int main(int argc, char *argv[])
 //	scanf( "%u", &time_value ) ;
 	// Now set up the timer
 	start_timer( timer_id, 0, time_value, 0, time_value ) ;
-	timer_demo( channel_id, 50) ;	// run the crude PWM demo
+	printf("Creating pwm thread\n");
+	pthread_create(&pwm_thread, NULL, timer_demo, (void*) &pwm_args);
+	printf("Created pwm thread\n");
+
+	while(1);
 
 	return 0;
 }

@@ -1,0 +1,68 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
+
+#include "pwm.h"
+#include "servo_states.h"
+
+// Returns the difference between two timespecs in seconds
+double time_elapsed(struct timespec *start, struct timespec *current)
+{
+	double time_s  = (double)(current->tv_sec) - (double)(start->tv_sec);
+	double time_ns = (double)(current->tv_nsec) - (double)(start->tv_nsec);
+	return time_s + time_ns*1e-9;
+}
+
+events parseInput(char input)
+{
+	// Handle user input
+	if (input == 'C' || input == 'c') // Continue
+		return resume;
+	else if (input == 'P' || input == 'p') // Pause
+		return pause_event;
+	else if (input == 'L' || input == 'l') // move_left
+		return move_left;
+	else if (input == 'R' || input == 'r') // move_right
+		return move_right;
+	else if (input == 'B' || input == 'b') // begin
+		return begin;
+    else if (input == 'X' || input == 'x') // Terminate command
+        return terminate;
+	return nop;
+}
+
+int main(int argc, char *argv[])
+{
+	// Attempt to initialize PWM
+	int error = pwm_init();
+	if (error) // Exit on failure
+		return -1;
+
+	initServos();
+
+	// Time keeping for servo control loop
+	struct timespec start;
+	struct timespec current;
+
+	while(1)
+	{
+		// Keep track of loop iteration time
+		clock_gettime(CLOCK_REALTIME, &start);
+
+		// Handle user input
+
+
+		printf("Recipe step start\n");
+		recipeStep();
+		printf("Recipe step end\n");
+
+
+		clock_gettime(CLOCK_REALTIME, &current);
+		double elapsed_time = time_elapsed(&start, &current) * 1000;
+
+		// Sleep for the rest of the loop iteration duration
+		usleep((100 - elapsed_time) * 1000);
+	}
+
+	return 0;
+}

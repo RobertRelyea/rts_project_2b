@@ -1,0 +1,158 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
+#include <semaphore.h>
+#include <pthread.h>
+
+#include "pwm.h"
+#include "servo_states.h"
+
+// Global Variables
+events user_events[2];
+int user_input_ready=0;
+
+// Semaphores
+sem_t input_processed;
+
+//Mutexes
+pthread_mutex_t input_ready_locker ;
+pthread_mutex_t user_events_locker;
+
+//Threads
+pthread_t user_input_handle;
+
+
+
+
+// Returns the difference between two timespecs in seconds
+double time_elapsed(struct timespec *start, struct timespec *current)
+{
+	double time_s  = (double)(current->tv_sec) - (double)(start->tv_sec);
+	double time_ns = (double)(current->tv_nsec) - (double)(start->tv_nsec);
+	return time_s + time_ns*1e-9;
+}
+
+events parseInput(char input)
+{
+	// Handle user input
+	if (input == 'C' || input == 'c') // Continue
+		return resume;
+	else if (input == 'P' || input == 'p') // Pause
+		return pause_event;
+	else if (input == 'L' || input == 'l') // move_left
+		return move_left;
+	else if (input == 'R' || input == 'r') // move_right
+		return move_right;
+	else if (input == 'B' || input == 'b') // begin
+		return begin;
+    else if (input == 'X' || input == 'x') // Terminate command
+        return terminate;
+	return nop;
+}
+
+// User Input Thread
+void *userInput (void *arg)
+{
+	printf("\r\n >>");
+	uint8_t input_idx = 0;
+	while(1)
+	{
+		sem_wait(&input_processed);
+		char user_input = getchar();
+		printf("Received");
+		pthread_mutex_lock(&user_events_locker);
+		if (input_idx < 2) // Append to input command
+		{
+
+			user_events[input_idx] = parseInput(user_input);
+
+
+			// Check for termination of current command
+			// (And increment input_idx++)
+			if (user_events[input_idx++] == terminate)
+			{
+				// Reset input buffer index
+				input_idx = 0;
+
+				// Place new command indicator
+				printf("\r\n >>");
+			}
+		}
+		else // Input command fully constructed, wait for CR
+		{
+			// Check for carraige return
+			if (user_input == '\r')
+			{
+				// Determine events input by user
+				pthread_mutex_lock(&input_ready_locker);
+				user_input_ready = 1;
+				pthread_mutex_unlock(&input_ready_locker);
+			}
+			// Reset input buffer index
+			input_idx = 0;
+
+			// Place new command indicator
+			printf("\r\n >>");
+		}
+		pthread_mutex_unlock(&user_events_locker);
+	}
+}
+
+int main(int argc, char *argv[])
+{
+	// Attempt to initialize PWM
+//	int error = pwm_init();
+//	if (error) // Exit on failure
+//		return -1;
+
+	initServos();
+
+	// Initialize mutexes
+	pthread_mutex_init(&input_ready_locker,NULL);
+	pthread_mutex_init(&user_events_locker,NULL);
+
+
+	// Initialize Semaphores
+	sem_init(&input_processed, 0, 0);
+	sem_post(&input_processed);
+
+	//Create threads
+//	pthread_create(&user_input_handle, NULL,userInput,NULL);
+
+
+	char user_input;
+	scanf(" %c", &user_input);
+	printf("Received");
+
+	// Time keeping for servo control loop
+	struct timespec start;
+	struct timespec current;
+
+	while(1)
+	{
+		// Keep track of loop iteration time
+		clock_gettime(CLOCK_REALTIME, &start);
+
+		// Handle user input
+		pthread_mutex_lock(&input_ready_locker);
+		if (user_input_ready)
+		{
+			user_input_ready = 0;
+			pthread_mutex_lock(&user_events_locker);
+			processInput(user_events[0], user_events[1]);
+			pthread_mutex_unlock(&user_events_locker);
+			sem_post(&input_processed);
+		}
+		pthread_mutex_unlock(&input_ready_locker);
+
+		recipeStep();
+
+		clock_gettime(CLOCK_REALTIME, &current);
+		double elapsed_time = time_elapsed(&start, &current) * 1000;
+
+		// Sleep for the rest of the loop iteration duration
+		usleep((100 - elapsed_time) * 1000);
+	}
+
+	return 0;
+}

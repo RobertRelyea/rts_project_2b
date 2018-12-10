@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<QdeProjectsBuildInfo>
+<qdeBuildInfo IMemento.internal.id="Z:/real_time/project_2b/project_2b" buildConfig="_x86_g" projectName="project_2b">
+<srcDirs>
+<element>Z:/real_time/project_2b/project_2b/x86/o</element>
+<element>Z:/real_time/project_2b/project_2b/x86/o-g</element>
+<element>Z:/real_time/project_2b/project_2b/x86</element>
+<element>Z:/real_time/project_2b/project_2b</element>
+</srcDirs>
+<libDirs>
+<element>Z:/real_time/project_2b/project_2b/x86/o-g</element>
+<element>C:/QNX650/target/qnx6/x86/lib</element>
+<element>C:/QNX650/target/qnx6/x86/usr/lib</element>
+</libDirs>
+<incDirs>
+<element>C:/QNX650/target/qnx6/usr/include</element>
+<element>Z:/real_time/project_2b/project_2b/x86/o-g</element>
+<element>Z:/real_time/project_2b/project_2b/x86/o</element>
+<element>Z:/real_time/project_2b/project_2b/x86</element>
+<element>Z:/real_time/project_2b/project_2b</element>
+</incDirs>
+<libs>
+<element>c</element>
+<element>socket</element>
+</libs>
+<SRCS>
+<element>Z:/real_time/project_2b/project_2b/project_2b.c</element>
+<element>Z:/real_time/project_2b/project_2b/pwm.c</element>
+<element>Z:/real_time/project_2b/project_2b/servo_recipes.c</element>
+<element>Z:/real_time/project_2b/project_2b/servo_states.c</element>
+</SRCS>
+</qdeBuildInfo>
+</QdeProjectsBuildInfo>

@@ -2,7 +2,7 @@
 
 /******        CHANGE DEMO RECIPES HERE        ******/
 // Variables for conveniently changing demo recipes
-unsigned char *recipe_data1 = recipe_demo;
+unsigned char *recipe_data1 = recipe_verify_moves;
 unsigned char *recipe_data2 = recipe_verify_moves_reverse;
 
 

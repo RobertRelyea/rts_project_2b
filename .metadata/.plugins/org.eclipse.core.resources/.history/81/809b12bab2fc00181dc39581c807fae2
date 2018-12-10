@@ -1,12 +1,12 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 #include <time.h>
 #include <semaphore.h>
 #include <pthread.h>
 
 #include "pwm.h"
 #include "servo_states.h"
+
 #define BUFFER_SIZE (100)
 
 // Global Variables
@@ -47,9 +47,9 @@ events parseInput(char input)
 		return move_right;
 	else if (input == 'B' || input == 'b') // begin
 		return begin;
-	else if (input == 'N' || input == 'n') // nop
-		return nop;
-    return terminate;
+    else
+        return terminate;
+	return nop;
 }
 
 // User Input Thread
@@ -68,8 +68,6 @@ void *userInput (void *arg)
 		scanf("%s", input_buffer);
 		if (strlen(input_buffer) < 2)
 		{
-			printf("\n >>");
-			fflush(stdout);
 			sem_post(&input_processed);
 			continue;
 		}
@@ -88,11 +86,15 @@ void *userInput (void *arg)
 		}
 		else // Input command fully constructed, wait for CR
 		{
-			// Determine events input by user
-			pthread_mutex_lock(&input_ready_locker);
-			user_input_ready = 1;
-			pthread_mutex_unlock(&input_ready_locker);
-
+			// Check for carriage return
+//			if (input_buffer[2] == '\n')
+//			{
+				// Determine events input by user
+				pthread_mutex_lock(&input_ready_locker);
+				user_input_ready = 1;
+				pthread_mutex_unlock(&input_ready_locker);
+//			}
+			// Place new command indicator
 			printf("\n >>");
 			fflush(stdout);
 		}
@@ -102,6 +104,11 @@ void *userInput (void *arg)
 
 int main(int argc, char *argv[])
 {
+
+//	char user_input = getchar();
+//	printf("Received");
+//	fflush(stdout);
+
 	// Attempt to initialize PWM
 	int error = pwm_init();
 	if (error) // Exit on failure
